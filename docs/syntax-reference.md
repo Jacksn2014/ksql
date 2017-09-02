@@ -16,10 +16,10 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 
 # CLI-specific commands
 
-Unlike KSQL statements, these commands are for setting a KSQL configuration or adding a resource.
+Unlike KSQL statements such as `SELECT`, these commands are for setting a KSQL configuration, exiting the CLI, etc.
 Run the CLI with `--help` to see the available options.
 
-**Tip:** You can search and browse your command history in the KSQL CLI with `Ctrl+R`.  After pressing `Ctrl+R`, start
+**Tip:** You can search and browse your command history in the KSQL CLI with `Ctrl-R`.  After pressing `Ctrl-R`, start
 typing the command or any part of the command to show an auto-complete of past commands.
 
 ```
@@ -279,7 +279,7 @@ SELECT select_expr [, ...]
 
 Selects rows from a KSQL stream or table. The result of this statement will not be persisted in a
  Kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
-  press `Ctrl+C`.
+  press `Ctrl-C`.
 
 In the above statements from_item is one of the following:
 
@@ -436,9 +436,15 @@ TERMINATE query_id;
 
 **Description**
 
-Terminate a persistent query. Persistent queries run continuously until they are explicitly terminated.  Notably,
-exiting the KSQL CLI *will not* terminate persistent queries!  (To terminate a non-persistent query use `Ctrl-C` in the
-CLI.)
+Terminate a persistent query. Persistent queries run continuously until they are explicitly terminated.
+
+* In standalone mode, exiting the CLI will stop (think: "pause") any persistent queries because exiting the CLI will
+  also stop the KSQL engine.  When the CLI is restarted, the engine will be restarted, too, and any previously defined
+  persistent queries will resume processing.
+* In client-server mode, exiting the CLI will not stop persistent queries because the KSQL engine(s) will continue to
+  process the queries.
+
+(To terminate a non-persistent query use `Ctrl-C` in the CLI.)
 
 
 ## Scalar functions
