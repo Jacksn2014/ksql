@@ -106,8 +106,10 @@ KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table,
 corresponding Kafka message timestamp and message key, respectively.
 
 These are the supported WITH clause properties:
-* KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
-* VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL supports JSON, delimited. This is a required property.
+* KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka.
+  This is a required property.
+* VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL
+  supports `JSON`, `DELIMITED`. This is a required property.
 * KEY: The name of the key column.
 * TIMESTAMP: The name of the timestamp column. This can be used to define the event time.
 
@@ -147,10 +149,12 @@ corresponding Kafka message timestamp and message key, respectively.
 
 The possible properties to set in the WITH clause:
 
-* KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
-* VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL supports JSON, delimited. This is a required property.
-* KEY: The name of the key column.
-* TIMESTAMP: The name of the timestamp column.
+| Setting                 | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table.  The topic must already exist in Kafka. |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
+| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
+| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. |
 
 Example:
 
