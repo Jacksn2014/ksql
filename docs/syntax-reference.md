@@ -105,13 +105,14 @@ The supported column data types are:
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
 
-These are the supported WITH clause properties:
-* KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka.
-  This is a required property.
-* VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL
-  supports `JSON`, `DELIMITED`. This is a required property.
-* KEY: The name of the key column.
-* TIMESTAMP: The name of the timestamp column. This can be used to define the event time.
+The WITH clause supports the following properties:
+
+| Property                | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
+| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
+| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Example:
 
@@ -120,6 +121,7 @@ CREATE STREAM pageview (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR) \
   WITH (value_format = 'json', \
         kafka_topic='pageview_topic_json');
 ```
+
 
 ### CREATE TABLE
 
@@ -132,7 +134,7 @@ CREATE TABLE table_name ( { column_name data_type } [, ...] )
 
 **Description**
 
-Create a new KSQL table with the specified columns and properties.
+Create a new table with the specified columns and properties.
 
 The supported column data types are:
 
@@ -147,14 +149,14 @@ The supported column data types are:
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
 
-The possible properties to set in the WITH clause:
+The WITH clause supports the following properties:
 
-| Setting                 | Description                                                                                |
+| Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table.  The topic must already exist in Kafka. |
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
-| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. |
+| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Example:
 
@@ -180,16 +182,19 @@ CREATE STREAM stream_name
 
 **Description**
 
-Create a new KSQL stream along with the corresponding Kafka topic and stream the result of the SELECT query into the topic.
+Create a new stream along with the corresponding Kafka topic, and continuously write the result of the SELECT query into
+the stream and its corresponding topic.
 
-You can use the WITH section to set the properties for the result KSQL stream. The properties that
- can be set are:
+The WITH clause supports the following properties:
 
-* KAFKA_TOPIC: The name of KSQL topic and the corresponding Kafka topic associated with the new KSQL stream. If not specified, the name of the stream will be used as default.
-* FORMAT: Specifies the format in which the result topic data is serialized in. KSQL supports JSON and DELIMITED. If not set the same format of the input stream will be used.
-* PARTITIONS: The number of partitions in the sink stream.
-* REPLICATIONS: The replication factor for the sink stream.
-* TIMESTAMP: The name of the column that will be used as the timestamp. This can be used to define the event time.
+| Property                | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| KAFKA_TOPIC             | The name of the Kafka topic that backs this stream.  If this property is not set, then the name of the stream will be used as default. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
+| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
+| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
 
 ### CREATE TABLE AS SELECT
@@ -211,12 +216,16 @@ CREATE TABLE stream_name
 Create a new KSQL table along with the corresponding Kafka topic and stream the result of the
 SELECT query as a changelog into the topic.
 
-The WITH section can be used to set the properties for the result KSQL topic. The properties that can be set are as the following:
+The WITH clause supports the following properties:
 
-* KAFKA_TOPIC: The name of KSQL topic and the corresponding Kafka topic associated with the new KSQL stream. If not set, the name of the stream will be used as default.
-* FORMAT: Specifies the format in which the result topic data is serialized in. KSQL supports JSON and DELIMITED. If not set the same format of the input stream will be used.
-* PARTITIONS: The number of partitions in the sink stream.
-* REPLICATIONS: The replication factor for the sink stream.
+| Property                | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| KAFKA_TOPIC             | The name of the Kafka topic that backs this table.  If this property is not set, then the name of the table will be used as default. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
+| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
+| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 
 ###  DROP STREAM
