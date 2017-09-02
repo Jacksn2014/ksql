@@ -16,7 +16,11 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 
 # CLI-specific commands
 
-These commands are non-KSQL statements such as setting a property or adding a resource. Run the CLI with the --help option to see the available options.
+Unlike KSQL statements, these commands are for setting a KSQL configuration or adding a resource.
+Run the CLI with `--help` to see the available options.
+
+**Tip:** You can search and browse your command history in the KSQL CLI with `Ctrl+R`.  After pressing `Ctrl+R`, start
+typing the command or any part of the command to show an auto-complete of past commands.
 
 ```
 Description:
@@ -58,13 +62,15 @@ Default behavior:
     during this time is sent to the server as KSQL.
 ```
 
-**Tip:** You can search and browse your bash history in the KSQL CLI with `CTRL + R`.  After pressing `CTRL + R`, start typing the command or any part of the command and an auto-complete of a past commands is shown.
-
 
 # KSQL statements
 
-KSQL statements should be terminated with a semicolon (`;`). If desired, in the CLI use a back-slash
-(`\`) to indicate continuation on the next line.
+**Important:**
+
+* KSQL statements must be terminated with a semicolon (`;`).
+* Multi-line statements:
+    * In the CLI you must use a back-slash (`\`) to indicate continuation of a statement on the next line.
+    * Do not use `\` for multi-line statements in `.sql` files.
 
 
 ### DESCRIBE
@@ -78,6 +84,7 @@ DESCRIBE (stream_name|table_name);
 **Description**
 
 List the columns in a stream or table along with their data type and other attributes.
+
 
 ### CREATE STREAM
 
@@ -117,9 +124,9 @@ The WITH clause supports the following properties:
 Example:
 
 ```sql
-CREATE STREAM pageview (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR) \
-  WITH (value_format = 'json', \
-        kafka_topic='pageview_topic_json');
+CREATE STREAM pageviews (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR)
+  WITH (VALUE_FORMAT = 'JSON',
+        KAFKA_TOPIC = 'my-pageviews-topic');
 ```
 
 
@@ -161,9 +168,9 @@ The WITH clause supports the following properties:
 Example:
 
 ```sql
-CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR) \
-  WITH (value_format = 'json', \
-        kafka_topic='user_topic_json');
+CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
+  WITH (VALUE_FORMAT = 'JSON',
+        KAFKA_TOPIC = 'my-users-topic');
 ```
 
 
@@ -208,9 +215,10 @@ CREATE TABLE stream_name
   FROM from_item [, ...]
   [ WINDOW window_expression ]
   [ WHERE condition ]
-  [ GROUP BY grouping expression ]
+  [ GROUP BY grouping_expression ]
   [ HAVING having_expression ];
 ```
+
 **Description**
 
 Create a new KSQL table along with the corresponding Kafka topic and stream the result of the
@@ -263,7 +271,7 @@ SELECT select_expr [, ...]
   FROM from_item [, ...]
   [ WINDOW window_expression ]
   [ WHERE condition ]
-  [ GROUP BY grouping expression ]
+  [ GROUP BY grouping_expression ]
   [ HAVING having_expression ];
 ```
 
@@ -275,44 +283,54 @@ Selects rows from a KSQL stream or table. The result of this statement will not 
 
 In the above statements from_item is one of the following:
 
+- `stream_name [ [ AS ] alias]`
 - `table_name [ [ AS ] alias]`
 - `from_item LEFT JOIN from_item ON join_condition`
 
-The WINDOW clause is used to define a window for aggregate queries. KSQL supports the following WINDOW types:
+The WINDOW clause lets you control how to *group input records that have the same key* into so-called *windows* for
+operations such as aggregations or joins.  Windows are tracked per record key.  KSQL supports the following WINDOW
+types:
 
-* TUMBLING
-  The TUMBLING window requires a size parameter.
-
-  Example:
-
-  ```sql
-  SELECT item_id, SUM(array_col[0]) \
-    FROM orders \
-    WINDOW TUMBLING (SIZE 20 SECONDS) \
-    GROUP BY item_id; \
-  ```
-
-* HOPPING
-  The HOPPING window is a fixed sized, (possibly) overlapping window. You must provide two values for a HOPPING window, size and advance interval. The following is an example query with hopping window.
+* **TUMBLING**:
+  Tumbling windows group input records into fixed-sized, non-overlapping windows based on the records' timestamps.
+  You must specify the *window size* for tumbling windows. Note: Tumbling windows are a special case of hopping windows
+  where the window size is equal to the advance interval.
 
   Example:
 
   ```sql
-  SELECT item_id, SUM(array_col[0]) \
-    FROM orders \
-    WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS) \
+  SELECT item_id, SUM(quantity)
+    FROM orders
+    WINDOW TUMBLING (SIZE 20 SECONDS)
     GROUP BY item_id;
   ```
 
-* SESSION
-  SESSION windows are used to aggregate key-based events into so-called sessions. The SESSION window requires the session inactivity gap size.
+* **HOPPING**:
+  Hopping windows group input records into fixed-sized, (possibly) overlapping windows based on the records' timestamps.
+  You must specify the *window size* and the *advance interval* for hopping windows.
 
   Example:
 
   ```sql
-  SELECT item_id, SUM(array_col[0]) \
-    FROM orders \
-    WINDOW SESSION (20 SECONDS) \
+  SELECT item_id, SUM(quantity)
+    FROM orders
+    WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS)
+    GROUP BY item_id;
+  ```
+
+* **SESSION**:
+  Session windows group input records into so-called sessions.
+  You must specify the *session inactivity gap* parameter for session windows.
+  For example, imagine you set the inactivity gap to 5 minutes.  If, for a given record key such as "alice", no new
+  input data arrives for more than 5 minutes, then the current session for "alice" is closed, and any newly arriving
+  data for "alice" in the future will mark the beginning of a new session.
+
+  Example:
+
+  ```sql
+  SELECT item_id, SUM(quantity)
+    FROM orders
+    WINDOW SESSION (20 SECONDS)
     GROUP BY item_id;
   ```
 
@@ -320,16 +338,18 @@ The WINDOW clause is used to define a window for aggregate queries. KSQL support
 
 **Synopsis**
 
-```
+```sql
 CAST (expression AS data_type);
 ```
 
-You can cast an expression type using CAST. Here is an example of converting a BIGINT into a VARCHAR type:
+You can cast an expression's type to a new type using CAST. Here is an example of converting a BIGINT into a VARCHAR
+type:
 
 ```sql
-SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '__HI') \
-  FROM enrichedpv \
-  WINDOW TUMBLING (SIZE 5 SECONDS) \
+-- This query converts the numerical count into a suffixed string; e.g., 5 becomes '5_HELLO'
+SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO')
+  FROM pageviews_enriched
+  WINDOW TUMBLING (SIZE 20 SECONDS)
   GROUP BY page_id;
 ```
 
@@ -337,21 +357,23 @@ SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '__HI') \
 
 **Synopsis**
 
-```
+```sql
 column_name LIKE pattern;
 ```
 
-LIKE operator is used for prefix or suffix matching. Currently we support '%' that represents
-zero or more characters.
+The LIKE operator is used for prefix or suffix matching. Currently KSQL supports `%`, which represents zero or more
+characters.
+
+Example:
 
 ```sql
-SELECT page_id, region_id \
-  FROM enrichedpv \
-  WHERE region_id LIKE '%_8' AND gender LIKE '%MAIL%' AND user_id LIKE 'user_%';
+SELECT user_id
+  FROM users
+  WHERE user_id LIKE 'santa%';
 ```
 
 
-### SHOW | LIST TOPICS
+### SHOW TOPICS
 
 **Synopsis**
 
@@ -361,10 +383,11 @@ SHOW | LIST TOPICS;
 
 **Description**
 
-The list of available topics in the Kafka cluster that KSQL is configured to connect to (default: `localhost:9092`).
+List the available topics in the Kafka cluster that KSQL is configured to connect to (default setting for
+`bootstrap.servers`: `localhost:9092`).
 
 
-### SHOW | LIST STREAMS
+### SHOW STREAMS
 
 **Synopsis**
 
@@ -374,10 +397,10 @@ SHOW | LIST STREAMS;
 
 **Description**
 
-List all the defined streams.
+List the defined streams.
 
 
-### SHOW | LIST TABLES
+### SHOW TABLES
 
 **Synopsis**
 
@@ -387,7 +410,7 @@ SHOW | LIST TABLES;
 
 **Description**
 
-List all the defined tables.
+List the defined tables.
 
 
 ### SHOW QUERIES
@@ -400,7 +423,7 @@ SHOW QUERIES;
 
 **Description**
 
-List all the running persistent queries.
+List the running persistent queries.
 
 
 ### TERMINATE
@@ -413,8 +436,9 @@ TERMINATE query_id;
 
 **Description**
 
-End a persistent query. Persistent queries run continuously until they are explicitly terminated.  Notably, exiting the
-KSQL CLI *will not* terminate persistent queries!  (Also: Use `Ctrl-C` to terminate non-persistent queries.)
+Terminate a persistent query. Persistent queries run continuously until they are explicitly terminated.  Notably,
+exiting the KSQL CLI *will not* terminate persistent queries!  (To terminate a non-persistent query use `Ctrl-C` in the
+CLI.)
 
 
 ## Scalar functions
@@ -439,9 +463,9 @@ KSQL CLI *will not* terminate persistent queries!  (Also: Use `Ctrl-C` to termin
 
 ## Aggregate functions
 
-| Function   | Example                   | Description                                           |
-|------------|---------------------------|-------------------------------------------------------|
-| COUNT      | `COUNT(col1)`             | Count the number of rows                              |
-| MAX        | `MAX(col1)`               | Return the max value for a given column and window    |
-| MIN        | `MIN(col1)`               | Return the min value for a given column and window    |
-| SUM        | `SUM(col1)`               | Sums the column values                                |
+| Function   | Example                   | Description                                            |
+|------------|---------------------------|--------------------------------------------------------|
+| COUNT      | `COUNT(col1)`             | Count the number of rows                               |
+| MAX        | `MAX(col1)`               | Return the maximum value for a given column and window |
+| MIN        | `MIN(col1)`               | Return the minimum value for a given column and window |
+| SUM        | `SUM(col1)`               | Sums the column values                                 |
